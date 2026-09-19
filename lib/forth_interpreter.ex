@@ -1,25 +1,69 @@
-defmodule ForthInterpreter do
+defmodule ForthInterpreter.Helpers do
+  import NimbleParsec
+
+  def arithmetic() do
+    val = integer(min: 1)
+  end
+
+  def skip_whitespaces() do
+  end
+
+  operator =
+    choice([
+      string("+"),
+      string("-"),
+      string("*"),
+      string("/"),
+      string("mod"),
+      string(".")
+    ])
+
+  whitespace = times(string(" "), min: 0)
+
+  operand =
+    choice([
+      integer(min: 1),
+      wrap(parsec(:expression))
+    ])
+
+  defcombinator(
+    :expression,
+    ignore(whitespace)
+    |> optional(operator)
+    |> concat(operand)
+    |> ignore(whitespace)
+    |> concat(operand)
+    |> ignore(whitespace)
+    |> concat(operator)
+    |> optional(ignore(whitespace))
+    |> optional(operator)
+  )
+
+  # defcombinator(
+  #   :expression2,
+  #   ignore(whitespace),
+  #   |> concat
+  # )
+end
+
+defmodule ForthInterpreter.EntryPoint do
   @moduledoc """
   Documentation for `ForthInterpreter`.
   """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> ForthInterpreter.hello()
-      :world
-
-  """
   import NimbleParsec
+  import ForthInterpreter.Helpers
+  defparsec(:forth, parsec(:expression))
+end
+
+defmodule ForthInterpreter.Driver do
+  import ForthInterpreter.EntryPoint
 
   def new(input) do
-    IO.puts("#{input}")
+    # {:ok, parsed, rest, _, _, _} = ForthInterpreter.EntryPoint.forth(input)
+    ForthInterpreter.EntryPoint.forth(input)
+    # parsed
   end
 
-  defp parser(input) do
-    new_input = "5 4 +"
+  def new_from_file() do
   end
-
 end
