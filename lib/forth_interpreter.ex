@@ -1,49 +1,81 @@
 defmodule ForthInterpreter.Helpers do
   import NimbleParsec
-
-  def arithmetic() do
-    val = integer(min: 1)
-  end
-
-  def skip_whitespaces() do
-  end
-
-  operator =
-    choice([
-      string("+"),
-      string("-"),
-      string("*"),
-      string("/"),
-      string("mod"),
-      string(".")
-    ])
+  # import ForthInterpreter.HelperForHelpers
 
   whitespace = times(string(" "), min: 0)
-
-  operand =
+  arithmetic_operator =
     choice([
-      integer(min: 1),
-      wrap(parsec(:expression))
+      string("+") |> unwrap_and_tag(:add),
+      string("-") |> unwrap_and_tag(:subtraction),
+      string("*") |> unwrap_and_tag(:multiplication),
+      string("/") |> unwrap_and_tag(:division),
+      string("mod") |> unwrap_and_tag(:mod),
+      string(".") |> unwrap_and_tag(:print),
+      string("dup") |> unwrap_and_tag(:dup),
+      string("drop") |> unwrap_and_tag(:drop),
+      string("swap") |> unwrap_and_tag(:swap),
+      string("over") |> unwrap_and_tag(:over)
     ])
 
+  defp parse_number(parts) do
+    number_string =
+      Enum.map_join(parts, fn
+        ?- -> "-"
+        ?+ -> "+"
+        part when is_binary(part) -> part
+      end)
+
+      case Integer.parse(number_string) do
+        {value, ""} ->
+          value
+        {_value, _remainder} ->
+          {value, ""} = Float.parse(number_string)
+          value
+      end
+  end
+
+  parse_number =
+    [?-, ?+]
+    |> ascii_char()
+    |> optional()
+    |> ascii_string([?0..?9], min: 1)
+    |> optional(
+      "."
+      |> string()
+      |> ascii_string([?0..?9], min: 1)
+    )
+    |> reduce(:parse_number)
+    |> unwrap_and_tag(:number)
+
+  defcombinatorp :extended_expression,
+                  optional(ignore(whitespace))
+                  |> concat(parse_number)
+                  |> ignore(whitespace)
+                  |> concat(arithmetic_operator)
+                  |> optional(parsec(:extended_expression))
+
+  # operand =
+  #   choice([
+  #     parse_number,
+  #     wrap(parsec(:simple_expression))
+  #   ])
+
   defcombinator(
-    :expression,
+    :simple_expression,
     ignore(whitespace)
-    |> optional(operator)
-    |> concat(operand)
+    |> concat(parse_number)
     |> ignore(whitespace)
-    |> concat(operand)
+    |> concat(parse_number)
     |> ignore(whitespace)
-    |> concat(operator)
+    |> concat(arithmetic_operator)
     |> optional(ignore(whitespace))
-    |> optional(operator)
+    |> optional(parsec(:extended_expression))
   )
 
   # defcombinator(
-  #   :expression2,
-  #   ignore(whitespace),
-  #   |> concat
+  #   :just_stack_push
   # )
+
 end
 
 defmodule ForthInterpreter.EntryPoint do
@@ -52,18 +84,21 @@ defmodule ForthInterpreter.EntryPoint do
   """
   import NimbleParsec
   import ForthInterpreter.Helpers
-  defparsec(:forth, parsec(:expression))
+  defparsec(:expr, parsec(:simple_expression))
+  # defparsec(:keywords_expr, parsec(:keyword_expression))
 end
 
 defmodule ForthInterpreter.Driver do
   import ForthInterpreter.EntryPoint
 
-  def new(input) do
-    # {:ok, parsed, rest, _, _, _} = ForthInterpreter.EntryPoint.forth(input)
-    ForthInterpreter.EntryPoint.forth(input)
-    # parsed
+  def new("") do
+    :ok
   end
-
+  def new(input) do
+    # {:ok, parsed, input, _, _, _} = ForthInterpreter.EntryPoint.simple_expr(input)
+    # parsed
+    ForthInterpreter.EntryPoint.expr(input)
+  end
   def new_from_file() do
   end
 end
