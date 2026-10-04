@@ -4,7 +4,7 @@ defmodule ParserTest do
   test "simple expression parsing" do
     alias ForthInterpreter.Driver
     parsed = Driver.new("1 2 +")
-    assert parsed === [[simple_expression: [number: 1, number: 2, op: :add]] | nil]
+    assert parsed === [[simple_expression: [number: 1, number: 2, op: :addition]] | nil]
   end
 
   test "larger arithmetic expression parsing" do
@@ -16,7 +16,7 @@ defmodule ParserTest do
                simple_expression: [
                  number: 1,
                  number: 2,
-                 op: :add,
+                 op: :addition,
                  number: 3,
                  op: :multiplication
                ]
@@ -34,7 +34,7 @@ defmodule ParserTest do
                simple_expression: [
                  number: 1,
                  number: 2,
-                 op: :add,
+                 op: :addition,
                  number: 3,
                  op: :multiplication,
                  number: 4,

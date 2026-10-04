@@ -5,13 +5,13 @@ defmodule ForthInterpreter.Helpers do
 
   arithmetic_operator =
     choice([
-      string("+") |> replace(:add),
+      string("+") |> replace(:addition),
       string("-") |> replace(:subtraction),
       string("*") |> replace(:multiplication),
       string("/") |> replace(:division),
-      string("plus") |> replace(:add),
+      string("plus") |> replace(:addition),
       string("mod") |> replace(:mod)
-    ])
+    ]) |> lookahead(choice([times(string(" "), min: 1), eos()]))
     |> unwrap_and_tag(:op)
 
   print_stack = string(" . ") |> replace(:print) |> unwrap_and_tag(:op)
@@ -103,6 +103,7 @@ defmodule ForthInterpreter.Helpers do
     :maybe_number,
     ignore(whitespace)
     |> concat(parse_number)
+    |> lookahead_not(ascii_char([?a..?z]))
     |> optional(parsec(:maybe_number))
   )
 
@@ -273,27 +274,10 @@ defmodule ForthInterpreter.Helpers do
       parsec(:bin_log_op_kw_only) |> tag(:bin_log_op_kw_only),
       parsec(:unary_log_op_kw_only) |> tag(:unary_log_op_kw_only),
       parsec(:comparison_op_kw_only) |> tag(:comparison_op_kw_only),
-      parsec(:a_word2) |> tag(:single_word)
+      parsec(:a_word2) |> tag(:single_word),
+      parsec(:maybe_number) |> tag(:just_input_numbers)
       # parsec(:print_statement) |> tag(:print_op)
     ])
-  )
-
-  defcombinator(
-    :word_expr_syn_error_1,
-    ignore(whitespace)
-    |> concat(string(":"))
-  )
-
-  defcombinator(
-    :word_expr_syn_error_2,
-    ignore(whitespace)
-    |> concat(string(": "))
-  )
-
-  defcombinator(
-    :word_expr_syn_error_3,
-    ignore(whitespace)
-    |> concat(string(": "))
   )
 end
 
@@ -324,22 +308,45 @@ defmodule ForthInterpreter.Driver do
     # {:ok, parsed, rest, _, _, _} = ForthInterpreter.EntryPoint.expr(rest)
     # [parsed | new(rest)]
 
-    case ForthInterpreter.EntryPoint.expr(rest) do
-      {:ok, parsed, rest, _, _, _} ->
-        case new(rest) do
-          {:error, reason} -> {:error, reason}
-          _ -> [parsed | new(rest)]
+    case rest do
+      "" ->
+        nil
+      _ ->
+        case ForthInterpreter.EntryPoint.expr(rest) do
+          {:ok, parsed, rest, _, _, _} ->
+            case new(rest) do
+              {:error, reason} -> {:error, reason}
+              _ -> [parsed | new(rest)]
+            end
+
+          # [parsed | new(rest)]
+
+          {:error, _parsed, rest, _ctx_map, _offset, _second_offset} ->
+            # IO.puts("Parsed Val #{parsed}")
+            IO.puts("Rest = #{rest}")
+            # IO.puts("REST IS HERE->#{input}")
+            {:error, error_str} = Error.SyntaxError.check_syn_err_for_word_def(rest)
+            # IO.puts("OUT THERE -> #{error_str}")
+            {:error, error_str}
         end
-
-      # [parsed | new(rest)]
-
-      {:error, _parsed, rest, _ctx_map, _offset, _second_offset} ->
-        # IO.puts("Parsed Val #{parsed}")
-        # IO.puts("Rest = #{rest}")
-        IO.puts("REST IS HERE->#{input}")
-        {:error, error_str} = Error.SyntaxError.check_syn_err_for_word_def(input)
-        # IO.puts("OUT THERE -> #{error_str}")
-        {:error, error_str}
     end
+
+    # case ForthInterpreter.EntryPoint.expr(rest) do
+    #   {:ok, parsed, rest, _, _, _} ->
+    #     case new(rest) do
+    #       {:error, reason} -> {:error, reason}
+    #       _ -> [parsed | new(rest)]
+    #     end
+
+    #   # [parsed | new(rest)]
+
+    #   {:error, _parsed, rest, _ctx_map, _offset, _second_offset} ->
+    #     # IO.puts("Parsed Val #{parsed}")
+    #     # IO.puts("Rest = #{rest}")
+    #     IO.puts("REST IS HERE->#{input}")
+    #     {:error, error_str} = Error.SyntaxError.check_syn_err_for_word_def(input)
+    #     # IO.puts("OUT THERE -> #{error_str}")
+    #     {:error, error_str}
+    # end
   end
 end
