@@ -1,6 +1,4 @@
 defmodule Error.SyntaxError do
-  # list_of_stack_operators = ["+", ]
-
   defp char() do
     fn input ->
       case input do
@@ -94,34 +92,6 @@ defmodule Error.SyntaxError do
 
   defp either_func_call_or_stack_operation() do
     fn input ->
-      # IO.puts("Reaching Here #{input}")
-
-      # with {:ok, term, rest} <- choice([digit_followed_by_ascii_chars(), some_stack_operator()]).(input) do
-      #   # IO.puts("From withing WITH #{term}")
-      #   input2 = rest
-
-      #   # check for ?\s?; codepoint or single ?; codepoint
-      #   # terminate if any one of the 2 conditions meet
-      #   # this acts as a sort of lookahead function
-      #   with {:ok, term1, rest1} <- char().(input2), {:ok, term2, _rest2} <- char().(rest1) do
-      #     if term1 == ?\s and term2 == ?; do
-      #       # IO.puts("Detecting space and semicolon")
-      #       # IO.puts("#{rest}")
-      #       {:ok, term, rest}
-      #     else
-      #       # if no \s; or ; term is found then continue to parse
-      #       either_func_call_or_stack_operation().(rest)
-      #     end
-      #   else
-      #     # {:error, _reason} -> {:error, "end of string, in search of <space>;"}
-      #     {:error, _reason} -> {:error, "unterminated definition"}
-      #   end
-      # else
-      #   {:error, _reason} ->
-      #     {:error, "The choice is failing why ?"}
-      # end
-
-      # choice([digit_followed_by_ascii_chars(), some_stack_operator()]).(input)
 
       case digit_followed_by_ascii_chars().(input) do
         {:ok, term, rest} ->
@@ -145,27 +115,11 @@ defmodule Error.SyntaxError do
     end
   end
 
-  # defp digit_followed_by_ascii_chars() do
-  #   fn input ->
-  #     many(sequence([many(digit()), word_name_identifier_char()]))
-  #     |> map(fn {:ok, [chars], _rest} -> to_string(chars) end)
-  #   end
-  # end
-
-  # defp to_check_the_input_passed_down() do
-  #   fn input ->
-  #     IO.puts("THE PASSED DOWN INPUT ===> #{input}")
-  #   end
-  # end
-
   defp digit(), do: satisfy(char(), fn ch -> ch in ?0..?9 end)
   defp ascii_letter(), do: satisfy(char(), fn ch -> ch in ?a..?z or ch in ?A..?Z end)
 
   defp arithmetic_operator(),
     do: satisfy(char(), fn ch -> ch == ?+ or ch == ?- or ch == ?* or ch == ?/ end)
-
-  # defp identifier_char(), do: choice([ascii_letter(), char(?_), digit()])
-  # defp word_name_identifier(), do: choice([ascii_letter(), char(?_)])
 
   defp word_name_identifier_char() do
     satisfy(
@@ -173,13 +127,6 @@ defmodule Error.SyntaxError do
       fn chars -> chars != [] end
     )
   end
-
-  # defp identifier() do
-  #   map(
-  #     satisfy(many(identifier_char()), fn chars -> chars != [] end),
-  #     fn chars -> to_string(chars) end
-  #   )
-  # end
 
   defp map(parser, mapper) do
     fn input ->
@@ -217,15 +164,6 @@ defmodule Error.SyntaxError do
     end
   end
 
-  # defp token(parser) do
-  #   sequence([
-  #     many(choice([char(?\s), char(?\n)])),
-  #     parser,
-  #     many(choice([char(?\s), char(?\n)]))
-  #   ])
-  #   |> map(fn [_lw, term, _tw] -> term end)
-  # end
-
   defp token2(parser) do
     sequence([
       many(choice([char(?\s), char(?\n)])),
@@ -234,54 +172,10 @@ defmodule Error.SyntaxError do
     |> map(fn [_lw, term] -> term end)
   end
 
-  # defp convert_digit_followed_by_ascii_letter_to_string() do
-  # end
-
-  # defp dfbac_helper("") do
-  #   {:error, "unexpected end of string"}
-  # end
-
-  # defp dfbac_helper(input) do
-  #   with {:ok, term, rest} <- many(sequence([many(digit()), word_name_identifier_char()])).(input) do
-  #     # IO.puts("#{rest}")
-  #     dfbac_helper(rest)
-  #   end
-  # end
-
-  # defp digit_followed_by_ascii_chars() do
-  #   fn input ->
-  #     IO.puts("DIGIT #{input}")
-  #     with {:ok, term, rest} <- sequence([whitespaces(), many(digit()), word_name()]).(input) do
-  #       input2 = rest
-  #       with {:ok, term1, rest1} <- char().(input2), {:ok, term2, _rest2} <- char().(rest1) do
-  #         if term1 == ?\s and term2 == ?; do
-  #           IO.puts("REST #{rest}")
-  #           {:ok, term, rest}
-  #         else
-  #           digit_followed_by_ascii_chars().(rest)
-  #         end
-  #       else
-  #         {:error, _reason} -> {:error, "unterminated definition"}
-  #       end
-
-  #       # digit_followed_by_ascii_chars().(rest)
-  #       # case rest do
-  #       #   "" -> {:error, "End of input"}
-  #       #   _ -> digit_followed_by_ascii_chars().(rest)
-  #       # end
-  #     else
-  #       {:error, reason} ->
-  #         IO.puts("INPUT=#{input}")
-  #         IO.puts("REASON DIGIT#{reason}")
-  #         {:error, "Failed for some reason not sure why"}
-  #     end
-  #   end
-  # end
-
   defp digit_followed_by_ascii_chars() do
     fn input ->
       with {:ok, term, rest} <- sequence([whitespaces(), many(digit()), word_name()]).(input) do
-        # IO.puts("digit #{rest}")
+
         {:ok, term, rest}
       else
         {:error, _reason} -> {:error, "Failing in digit func"}
@@ -289,42 +183,10 @@ defmodule Error.SyntaxError do
     end
   end
 
-  # defp some_stack_operator() do
-  #   fn input ->
-  #     with {:ok, term, rest} <- sequence([whitespaces(), arithmetic_operator()]).(input) do
-  #       IO.puts("STACK #{input}")
-  #       # input2 = rest
-  #       # with {:ok, term1, rest1} <- char().(input2), {:ok, term2, _rest2} <- char().(rest1) do
-  #       #   if term1 == ?\s and term2 == ?; do
-  #       #     IO.puts("REST #{rest}")
-  #       #     {:ok, term, rest}
-  #       #   else
-  #       #     some_stack_operator().(rest)
-  #       #   end
-  #       # else
-  #       #   {:error, _reason} -> {:error, "unterminated definition"}
-  #       # end
-
-  #       some_stack_operator().(rest)
-
-  #       # case rest do
-  #       #   "" -> {:error, "End of input"}
-  #       #   _ -> digit_followed_by_ascii_chars().(rest)
-  #       # end
-
-  #     else
-  #       {:error, reason} ->
-  #         IO.puts("INPUT=#{input}")
-  #         IO.puts("REASON ST OPR#{reason}")
-  #         {:error, "Failed for some reason not sure why"}
-  #     end
-  #   end
-  # end
-
   defp some_stack_operator() do
     fn input ->
       with {:ok, term, rest} <- sequence([whitespaces(), arithmetic_operator()]).(input) do
-        # IO.puts("Stack #{rest}")
+
         {:ok, term, rest}
       else
         {:error, reason} -> {:error, reason}
@@ -347,7 +209,6 @@ defmodule Error.SyntaxError do
                  to_string(chars)
                end
              ).(input) do
-        # IO.puts("Failing ON =>#{input}")
         # {:error, "word name is not appropriate"}
         {:error, "invalid word definition"}
       end
@@ -356,15 +217,12 @@ defmodule Error.SyntaxError do
 
   defp missing_termination_semicolon() do
     fn input ->
-      # IO.puts("Missing Termination Semicolon INPUT ->#{input}")
       with {:ok, term, rest} <- char().(input),
            {:ok, term1, rest1} <- char().(rest) do
         if term == ?\s and term1 == ?; do
-          # IO.puts("Ever here")
           {:ok, [term | term1], rest1}
         else
           if term == ?; do
-            # IO.puts("H1 #{term}")
             {:error, "unterminated definition"}
           else
             missing_termination_semicolon().(rest)
@@ -372,20 +230,12 @@ defmodule Error.SyntaxError do
         end
       else
         {:error, _reason} ->
-          # IO.puts("H2 EOS")
           {:error, "unterminated definition"}
       end
     end
   end
 
-  # defp to_check_the_input_passed_down() do
-  #   fn input ->
-  #     IO.puts("THE PASSED DOWN INPUT ===> #{input}")
-  #   end
-  # end
-
   def check_syn_err_for_word_def(input) do
-    # check if colon begins the statement
     choice2([
       begins_with_colon(),
       space_after_colon(),
@@ -395,11 +245,5 @@ defmodule Error.SyntaxError do
       # to_check_the_input_passed_down()
       # digit_followed_by_ascii_chars()
     ]).(input)
-
-    # digit_followed_by_ascii_chars().(input)
-    # either_func_call_or_stack_operation().(input)
-    # some_stack_operator().(input)
-    # word_name().(input)
-    # missing_termination_semicolon().(input)
   end
 end

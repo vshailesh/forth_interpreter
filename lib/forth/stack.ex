@@ -13,11 +13,13 @@ defmodule Forth.Stack do
   def pop([]) do
     {:error, "stack underflow"}
   end
+
   def pop([head | tail]) do
     {head, tail}
   end
 
   def peek([]), do: []
+
   def peek([head | tail]) do
     {head, [head | tail]}
   end
