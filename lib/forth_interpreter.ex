@@ -11,7 +11,8 @@ defmodule ForthInterpreter.Helpers do
       string("/") |> replace(:division),
       string("plus") |> replace(:addition),
       string("mod") |> replace(:mod)
-    ]) |> lookahead(choice([times(string(" "), min: 1), eos()]))
+    ])
+    |> lookahead(choice([times(string(" "), min: 1), eos()]))
     |> unwrap_and_tag(:op)
 
   print_stack = string(" . ") |> replace(:print) |> unwrap_and_tag(:op)
@@ -69,7 +70,6 @@ defmodule ForthInterpreter.Helpers do
   end
 
   defp make_word(parts) do
-    # IO.puts("MAKE WORDS => #{parts}")
     to_string(parts)
   end
 
@@ -186,10 +186,6 @@ defmodule ForthInterpreter.Helpers do
     |> unwrap_and_tag(:word_decl_name)
   )
 
-  # defcombinator(
-  #   :catch_single_char
-  # )
-
   # --------------------------------------------------------
   defcombinator(
     :simple_expression,
@@ -201,7 +197,7 @@ defmodule ForthInterpreter.Helpers do
     |> concat(arithmetic_operator)
     |> optional(ignore(whitespace))
     |> optional(parsec(:extended_expression))
-    |> optional(parsec(:a_word2))
+    # |> optional(parsec(:a_word2))
   )
 
   defcombinator(
@@ -252,9 +248,25 @@ defmodule ForthInterpreter.Helpers do
     :word_expr_using_other_custom_words,
     ignore(whitespace)
     |> concat(string(": ") |> replace(:colon_space))
+    |> parsec(:a_word)
     |> parsec(:a_word2)
     |> ignore(whitespace)
     |> concat(string(";") |> replace(:semicolon))
+  )
+
+  defcombinator(
+    :parse_n_op_expressions,
+    ignore(whitespace)
+    |> concat(parse_number)
+    |> lookahead_not(choice([times(string(" "), min: 1), eos()]))
+    |> concat(stack_operation)
+    |> tag(:n_op_expr)
+  )
+
+  defcombinator(
+    :simple_expr2,
+    ignore(whitespace)
+    |> parsec(:parse_n_op_expressions)
   )
 
   defcombinator(
@@ -266,6 +278,7 @@ defmodule ForthInterpreter.Helpers do
       parsec(:comparison_expression) |> tag(:comparison_op),
       parsec(:binary_logical_expressions) |> tag(:bin_log_op),
       parsec(:unary_logical_expressions) |> tag(:unary_log_op),
+      parsec(:simple_expr2) |> tag(:simple_expr2),
       parsec(:word_expressions_declaration) |> tag(:word_expr_decl),
       parsec(:word_fn_call) |> tag(:word_fn_call),
       parsec(:word_expr_using_other_custom_words) |> tag(:word_of_words),
@@ -295,22 +308,11 @@ defmodule ForthInterpreter.Driver do
 
   def new(input) do
     rest = input |> String.trim() |> String.downcase()
-    # try do
-    #   {:ok, parsed, rest, _, _, _} = ForthInterpreter.EntryPoint.expr(rest)
-    #   [parsed | new(rest)]
-    # catch
-    #   x -> "Caught: #{x}"
-    # end
-    # IO.puts("REST => #{String.length(rest)}")
-    # {:ok, parsed, rest, _, _, _} = ForthInterpreter.EntryPoint.expr(rest)
-    # IO.puts("REST => #{rest}")
-
-    # {:ok, parsed, rest, _, _, _} = ForthInterpreter.EntryPoint.expr(rest)
-    # [parsed | new(rest)]
 
     case rest do
       "" ->
         nil
+
       _ ->
         case ForthInterpreter.EntryPoint.expr(rest) do
           {:ok, parsed, rest, _, _, _} ->
@@ -319,34 +321,10 @@ defmodule ForthInterpreter.Driver do
               _ -> [parsed | new(rest)]
             end
 
-          # [parsed | new(rest)]
-
           {:error, _parsed, rest, _ctx_map, _offset, _second_offset} ->
-            # IO.puts("Parsed Val #{parsed}")
-            IO.puts("Rest = #{rest}")
-            # IO.puts("REST IS HERE->#{input}")
             {:error, error_str} = Error.SyntaxError.check_syn_err_for_word_def(rest)
-            # IO.puts("OUT THERE -> #{error_str}")
             {:error, error_str}
         end
     end
-
-    # case ForthInterpreter.EntryPoint.expr(rest) do
-    #   {:ok, parsed, rest, _, _, _} ->
-    #     case new(rest) do
-    #       {:error, reason} -> {:error, reason}
-    #       _ -> [parsed | new(rest)]
-    #     end
-
-    #   # [parsed | new(rest)]
-
-    #   {:error, _parsed, rest, _ctx_map, _offset, _second_offset} ->
-    #     # IO.puts("Parsed Val #{parsed}")
-    #     # IO.puts("Rest = #{rest}")
-    #     IO.puts("REST IS HERE->#{input}")
-    #     {:error, error_str} = Error.SyntaxError.check_syn_err_for_word_def(input)
-    #     # IO.puts("OUT THERE -> #{error_str}")
-    #     {:error, error_str}
-    # end
   end
 end
