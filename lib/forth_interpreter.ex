@@ -307,6 +307,9 @@ defmodule ForthInterpreter.Driver do
   def new(""), do: nil
 
   def new(input) do
+    IO.puts("Printing INPUT")
+    IO.puts(input)
+    IO.puts("PRINTING DONE")
     rest = input |> String.trim() |> String.downcase()
 
     case rest do
